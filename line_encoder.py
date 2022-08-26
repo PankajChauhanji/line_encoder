@@ -146,12 +146,10 @@ if __name__=='__main__':
     print("Enter the following options:")
     print("1 : NRZ-I\n2 : NRZ-L\n3 : Manchester\n4 : DIFFERENTIAL MANCHESTER\n 5: AMI")
     ch = int(input())
-    print("Enter the size of Encoded Data : ")
-    size=int(input())
-    li=[0]
-    print('Enter the binary bits sequnce of length ',size,' bits : \n')
-    for i in range(size):
-        li.append(int(input()))
+    print("Enter the Data : ")
+    data=input()
+    li = [0]+[int(i) for i in data]
+    size = len(data)
     # li.append(0)
 
     plt.subplot(2,1,1)
