@@ -216,13 +216,25 @@ HTML = """<!DOCTYPE html>
     </div>
     <div>
       <label>Encoding Scheme</label>
-      <select id="schemeSelect">
-        <option value="nrz_l">NRZ-L</option>
-        <option value="nrz_i">NRZ-I</option>
-        <option value="manchester">Manchester</option>
-        <option value="differential_manchester">Differential Manchester</option>
-        <option value="ami">AMI</option>
+      <select id="schemeSelect" onchange="updateHint()">
+        <optgroup label="NRZ Family">
+          <option value="nrz_l">NRZ-L</option>
+          <option value="nrz_i">NRZ-I</option>
+        </optgroup>
+        <optgroup label="Biphase">
+          <option value="manchester">Manchester</option>
+          <option value="differential_manchester">Differential Manchester</option>
+        </optgroup>
+        <optgroup label="Bipolar / Multilevel">
+          <option value="ami">AMI</option>
+          <option value="hdb3">HDB3</option>
+          <option value="mlt3">MLT-3</option>
+        </optgroup>
+        <optgroup label="Block Coding">
+          <option value="four_b_five_b">4B/5B + NRZ-I</option>
+        </optgroup>
       </select>
+      <div id="schemeHint" style="margin-top:7px;font-family:var(--font-mono);font-size:0.68rem;color:var(--muted);min-height:1em;"></div>
     </div>
   </div>
   <button id="encodeBtn" onclick="encode()">Encode</button>
@@ -241,6 +253,23 @@ HTML = """<!DOCTYPE html>
 </div>
 
 <script>
+  const HINTS = {
+    nrz_l:                  '0 → +1 &nbsp;|&nbsp; 1 → −1',
+    nrz_i:                  'Transition on 1 · no transition on 0',
+    manchester:             '0 → −1,+1 &nbsp;|&nbsp; 1 → +1,−1 &nbsp;(IEEE 802.3)',
+    differential_manchester:'Mid-bit transition always · start transition on 0',
+    ami:                    '0 → 0 &nbsp;|&nbsp; 1 → alternating ±1',
+    hdb3:                   'AMI + substitutes every run of 4 zeros (used in E1/E3)',
+    mlt3:                   'Cycles ±1,0 on each 1-bit · 0-bits hold (used in 100BASE-TX)',
+    four_b_five_b:          'Maps 4-bit groups → 5-bit codes, then NRZ-I · input padded to ×4',
+  };
+
+  function updateHint() {
+    const s = document.getElementById('schemeSelect').value;
+    document.getElementById('schemeHint').innerHTML = HINTS[s] || '';
+  }
+  updateHint();
+
   async function encode() {
     const data   = document.getElementById('dataInput').value.trim();
     const scheme = document.getElementById('schemeSelect').value;

@@ -103,14 +103,116 @@ def ami(bits: list[int]) -> list[int]:
     return result
 
 
+def hdb3(bits: list[int]) -> list[int]:
+    """HDB3 (High Density Bipolar 3):
+       Extension of AMI — runs of 4 consecutive zeros are replaced by
+       a special substitution pattern to avoid long zero runs.
+       Substitution depends on:
+         - parity of preceding 1-pulses (even/odd)
+         - polarity of last transmitted pulse
+       Pattern B00V  (odd count)  or  000V / B00V  (even count).
+    """
+    result = [0] * len(bits)
+    last_polarity = 1     # polarity of last non-zero AMI pulse
+    pulse_count   = 0     # count of +1/-1 pulses sent so far
+
+    i = 0
+    while i < len(bits):
+        # detect a run of 4 zeros starting at i
+        if (bits[i] == 0
+                and i + 3 < len(bits)
+                and bits[i+1] == 0
+                and bits[i+2] == 0
+                and bits[i+3] == 0):
+
+            v = last_polarity          # violation pulse — same polarity as last
+            if pulse_count % 2 == 0:
+                # even number of pulses since last substitution → B00V
+                b = -last_polarity     # balancing pulse — opposite polarity
+                result[i]   = b
+                result[i+1] = 0
+                result[i+2] = 0
+                result[i+3] = v
+                last_polarity = v
+                pulse_count += 2       # B and V both count
+            else:
+                # odd → 000V
+                result[i]   = 0
+                result[i+1] = 0
+                result[i+2] = 0
+                result[i+3] = v
+                last_polarity = v
+                pulse_count += 1       # only V counts
+            i += 4
+        else:
+            if bits[i] == 1:
+                result[i]     = last_polarity
+                last_polarity = -last_polarity
+                pulse_count  += 1
+            else:
+                result[i] = 0
+            i += 1
+
+    return result
+
+
+def mlt3(bits: list[int]) -> list[int]:
+    """MLT-3 (Multi-Level Transmit 3):
+       Signal cycles through levels +1 → 0 → -1 → 0 → +1 …
+       on each 1-bit.  0-bits cause no change.
+       Sequence: +1, 0, -1, 0, +1, 0, -1, 0 …
+    """
+    sequence = [1, 0, -1, 0]   # repeating cycle
+    result   = []
+    state    = 0               # index into sequence
+
+    for b in bits:
+        if b == 1:
+            state = (state + 1) % 4
+        result.append(sequence[state])
+
+    return result
+
+
+# 4B/5B lookup table — every 4-bit nibble maps to a 5-bit code
+_4B5B_TABLE = {
+    '0000': '11110', '0001': '01001', '0010': '10100', '0011': '10101',
+    '0100': '01010', '0101': '01011', '0110': '01110', '0111': '01111',
+    '1000': '10010', '1001': '10011', '1010': '10110', '1011': '10111',
+    '1100': '11010', '1101': '11011', '1110': '11100', '1111': '11101',
+}
+
+def four_b_five_b(bits: list[int]) -> list[int]:
+    """4B/5B block encoding:
+       Pads input to a multiple of 4, maps each 4-bit group to its
+       5-bit code word (guarantees ≤ 3 consecutive zeros).
+       The resulting bit stream is then NRZ-I encoded for the final signal.
+    """
+    # pad to multiple of 4
+    padded = bits[:]
+    if len(padded) % 4:
+        padded += [0] * (4 - len(padded) % 4)
+
+    encoded_bits = []
+    for i in range(0, len(padded), 4):
+        nibble = ''.join(str(b) for b in padded[i:i+4])
+        encoded_bits += [int(x) for x in _4B5B_TABLE[nibble]]
+
+    # NRZ-I on the 5-bit codes (standard pairing for 4B/5B)
+    return nrz_i(encoded_bits)
+
+
 # ── public API ────────────────────────────────────────────────────────────────
 
 ENCODERS = {
-    'nrz_l':                 ('NRZ-L',                  nrz_l),
-    'nrz_i':                 ('NRZ-I',                  nrz_i),
-    'manchester':            ('Manchester',              manchester),
-    'differential_manchester':('Differential Manchester', differential_manchester),
-    'ami':                   ('AMI',                    ami),
+    'nrz_l':                  ('NRZ-L',                   nrz_l),
+    'nrz_i':                  ('NRZ-I',                   nrz_i),
+    'manchester':             ('Manchester',               manchester),
+    'differential_manchester': ('Differential Manchester', differential_manchester),
+    'ami':                    ('AMI',                     ami),
+    'hdb3':                   ('HDB3',                    hdb3),
+    'mlt3':                   ('MLT-3',                   mlt3),
+    'four_b_five_b':          ('4B/5B',                   four_b_five_b),
 }
 
 
