@@ -9,3 +9,7 @@ Implementing the line encoding schemes
 5. Differential Manchester
 6. AMI
 7. B8ZS
+
+## 📸 Preview
+
+| ![Home Page](line_encoder/images/image.png) | 
