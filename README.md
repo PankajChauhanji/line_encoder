@@ -12,4 +12,4 @@ Implementing the line encoding schemes
 
 ## 📸 Preview
 
-| ![Home Page](line_encoder/images/image.png) | 
+| ![Home Page](images/home_page.png) | 
